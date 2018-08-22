@@ -334,4 +334,39 @@ PyObject * get_conf_value(char *name, char *path) {
     }
 }
 
+
+PyObject * get_all_user_info() {
+    /* Takes no arguments, returns a SWIG proxy 
+       list of 'userInfoEnt' structs
+    */
+    struct userInfoEnt *user_info;
+    int options = 0;
+    int num_users = 0;
+
+    /* Get info from API */
+    user_info = lsb_userinfo2(
+      NULL,        /* all user info */
+      &num_users, 
+      options
+    );
+    if (!user_info) {
+        lsb_perror("\n\n[Error] LSF API function 'lsb_userinfo2 failed'");
+        Py_RETURN_NONE;
+    }
+
+    /* Call succeeded, build up SWIG proxy list to return */
+    PyObject *result = PyList_New(num_users);
+    int i;
+    for (i = 0; i < num_users; i++) {
+        PyObject *obj = SWIG_NewPointerObj(
+            SWIG_as_voidptr(&user_info[i]),
+            SWIGTYPE_p_userInfoEnt,
+            0 | 0
+        );
+        PyList_SetItem(result, i, obj);
+    }
+
+    return result;
+}
+
 %}
