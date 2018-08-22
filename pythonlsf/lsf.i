@@ -334,4 +334,61 @@ PyObject * get_conf_value(char *name, char *path) {
     }
 }
 
+
+PyObject * get_user_info(PyObject *usernames_list) {
+    /* Takes a Python list of username strings, 
+       returns a SWIG proxy list of userInfoEnt structs
+    */
+    struct userInfoEnt *user_info;
+    int ret_code = 0;
+    int options = 0;
+    int num_users = 0;
+    char **usernames; 
+ 
+    if (PyList_Check(usernames_list)) {
+        num_users = PyList_Size(usernames_list);
+        int i = 0;
+        usernames = (char **) malloc((num_users + 1)*sizeof(char *));
+        for (i = 0; i < num_users; i++) {
+            PyObject *o = PyList_GetItem(usernames_list, i);
+            if (PyString_Check(o))
+                usernames[i] = PyString_AsString(PyList_GetItem(usernames_list, i));
+            else {
+                PyErr_SetString(PyExc_TypeError, "list must contain strings");
+                free(usernames);
+                Py_RETURN_NONE;
+            }
+        }
+        usernames[i] = 0;
+    } else {
+        PyErr_SetString(PyExc_TypeError,"not a list");
+        Py_RETURN_NONE;
+    }
+
+    /* Get info from API */ 
+    user_info = lsb_userinfo2(
+      usernames, 
+      &num_users, 
+      options
+    );
+    if (ret_code == -1) {
+        lsb_perror("\n[Error] LSF API function 'lsb_userinfo2' failed");
+        Py_RETURN_NONE;
+    }
+
+    /* Call succeeded, build up SWIG proxy list to return */
+    PyObject *result = PyList_New(num_users);
+    int i;
+    for (i = 0; i < num_users; i++) {
+        PyObject *obj = SWIG_NewPointerObj(
+            SWIG_as_voidptr(&user_info[i]),
+            SWIGTYPE_p_userInfoEnt,
+            0 | 0
+        );
+        PyList_SetItem(result, i, obj);
+    }
+    free(usernames);
+    return result;
+}
+
 %}
