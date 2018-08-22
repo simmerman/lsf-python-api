@@ -146,6 +146,7 @@ PyObject * string_array_to_pylist(PyObject* ptrobj, int size){
 %include "lsbatch.h"
 
 %inline %{
+
 PyObject * get_host_names() {
     struct hostInfo *hostinfo; 
     char   *resreq; 
@@ -298,6 +299,26 @@ PyObject * get_queue_info_by_name(char** name, int num) {
         PyObject *o = SWIG_NewPointerObj(SWIG_as_voidptr(&queueinfo[i]),
                                          SWIGTYPE_p_queueInfoEnt, 0 |  0 );
         PyList_SetItem(result,i,o);
+    }
+
+    return result;
+}
+
+PyObject * get_all_queue_info() {
+    struct queueInfoEnt* queueinfo;
+    int numqueues = 0;
+
+    queueinfo = lsb_queueinfo(NULL, &numqueues, NULL, 0, 0);
+
+    PyObject *result = PyList_New(numqueues);
+    int i;
+    for (i = 0; i < numqueues; i++) {
+        PyObject *obj = SWIG_NewPointerObj(
+            SWIG_as_voidptr(&queueinfo[i]),
+            SWIGTYPE_p_queueInfoEnt,
+            0 | 0
+        );
+        PyList_SetItem(result, i, obj);
     }
 
     return result;
